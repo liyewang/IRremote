@@ -39,7 +39,7 @@ typedef enum
 #define IR_RX P3_3
 
 // System clock frequency
-#define SYSCLK  22118400
+#define SYSCLK  22118400ull
 
 // 1T mode enable
 // #define TIMER0_1T
