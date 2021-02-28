@@ -17,7 +17,7 @@
 
 INTERRUPT(serial_isr, SI0_VECTOR);
 void uart_init(void);
-void uart_send_data(uint8_t dat);
-void uart_send_string(char *s);
+void uart_send_data(const uint8_t dat);
+void uart_send_string(const char* const str);
 
 #endif /* _UART_H_ */

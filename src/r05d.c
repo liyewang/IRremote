@@ -67,3 +67,6 @@ void R05D_tx(uint8_t A, uint8_t B, uint8_t C)
         }
     }
 }
+
+void R05D_rx(void)
+{}

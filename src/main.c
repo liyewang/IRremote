@@ -75,8 +75,6 @@ INTERRUPT(timer1_isr, TF1_VECTOR)
 /* External interrupt 1 routine */
 INTERRUPT(extern1_isr, IE1_VECTOR)
 {
-    // uart_send_data(0xcc);
-    // ir_rx();
     task = TASK_IR_RX;
 }
 

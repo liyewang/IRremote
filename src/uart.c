@@ -41,7 +41,7 @@ void uart_init(void)
     EA = 1;                 // Open master interrupt switch
 }
 
-void uart_send_data(uint8_t dat)
+void uart_send_data(const uint8_t dat)
 {
     while (busy);           //Wait for the completion of the previous data is sent
 #if (PARITYBIT != NONE_PARITY)
@@ -72,8 +72,9 @@ void uart_send_data(uint8_t dat)
 
 }
 
-void uart_send_string(char *s)
+void uart_send_string(const char* const str)
 {
-    while (*s)              //Check the end of the string
-        uart_send_data(*s++);     //Send current char and increment string ptr
+    const char* s = str;
+    while (*s)                  //Check the end of the string
+        uart_send_data(*s++);   //Send current char and increment string ptr
 }
