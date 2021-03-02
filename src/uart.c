@@ -2,9 +2,11 @@
 #include "main.h"
 #include "uart.h"
 
-#define bit9 P2_2           //P2.2 show UART data bit9
-
+extern task_t task;
 static bool busy;
+uint8_t data[NUM_DATA];
+static uint8_t data_idx = 0;
+// static bool data_full = false;
 
 /* Serial port interrupt routine */
 INTERRUPT(serial_isr, SI0_VECTOR)
@@ -12,8 +14,16 @@ INTERRUPT(serial_isr, SI0_VECTOR)
     if (RI)
     {
         RI = 0;             //Clear receive interrupt flag
-        P0 = SBUF;          //P0 show UART data
+        data[data_idx++] = SBUF;          //Save show UART data
+        task = TASK_UATR;
+        if (data_idx >= NUM_DATA)
+        {
+            REN = 0;
+            data_idx = 0;
+        }
+#if (PARITYBIT != NONE_PARITY)
         bit9 = RB8;         //P2.2 show parity bit
+#endif
     }
     if (TI)
     {
@@ -78,3 +88,6 @@ void uart_send_string(const char* const str)
     while (*s)                  //Check the end of the string
         uart_send_data(*s++);   //Send current char and increment string ptr
 }
+
+// void uart_recv_data(void)
+// {}

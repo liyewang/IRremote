@@ -12,14 +12,7 @@ typedef enum
 } protocol_t;
 
 /* define variables */
-static enum
-{
-    TASK_NONE,
-    TASK_UATR,
-    TASK_IR_TX,
-    TASK_IR_RX
-} task = TASK_IR_TX;
-
+volatile task_t task = TASK_NONE;
 volatile uint16_t timer0;
 volatile uint16_t timer1;
 volatile uint16_t timer1_count;
@@ -28,6 +21,9 @@ uint16_t timer_cycle_off;
 volatile signal_t signal;
 volatile signal_t signal_next;
 volatile bool signal_loaded;
+
+extern uint8_t data[NUM_DATA];
+// extern uint8_t data_idx = 0;
 
 //-----------------------------------------------
 
@@ -95,7 +91,13 @@ void signalGen(signal_t sig_next, uint16_t sig_dur_rem, uint8_t sig_dur_mul)
 #pragma restore
 
 static void uart(void)
-{}
+{
+    EX1 = 0;        // Disable external interrupt 1
+    while (REN);
+    for (uint8_t i = 0; i < NUM_DATA; i++)
+        uart_send_data(data[i]);
+    task = TASK_IR_TX;
+}
 
 static void ir_tx(void)
 {
@@ -103,7 +105,8 @@ static void ir_tx(void)
     ES = 0;         // Disable UART interrupt
     ET0 = 1;        // Enable timer0 interrupt
     ET1 = 1;        // Enable timer1 interrupt
-    R05D_tx(0xb2, 0x7b, 0xe0);
+    // R05D_tx(0xb2, 0x7b, 0xe0);
+    R05D_tx(data[0], data[1], data[2]);
     task = TASK_NONE;
     ET0 = 0;        // Disable timer0 interrupt
     ET1 = 0;        // Disable timer1 interrupt
@@ -158,7 +161,11 @@ void main(void)
     while (1)
     {
         if (task == TASK_NONE)
+        {
             EX1 = 1;        // Enable external interrupt 1
+            ES = 1;         // Enable UART interrupt
+            REN = 1;
+        }
         else if (task == TASK_UATR)
             uart();
         else if (task == TASK_IR_TX)

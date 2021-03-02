@@ -7,6 +7,14 @@
 
 typedef enum
 {
+    TASK_NONE,
+    TASK_UATR,
+    TASK_IR_TX,
+    TASK_IR_RX
+} task_t;
+
+typedef enum
+{
     IR_MARK = 0,
     IR_SPACE = 1
 } signal_t;
@@ -34,7 +42,6 @@ typedef enum
 
 /* define PINS */
 #define LED P3_4
-// #define IR_TX P3_4
 #define IR_TX P1_0
 #define IR_RX P3_3
 

@@ -4,7 +4,8 @@
 #include <stc12.h>
 #include <stdint.h>
 
-#define BAUD    115200//9600
+#define BAUD            115200//9600
+#define NUM_DATA        3
 
 /*Define UART parity mode*/
 #define NONE_PARITY     0   //None parity
@@ -13,7 +14,7 @@
 #define MARK_PARITY     3   //Mark parity
 #define SPACE_PARITY    4   //Space parity
 
-#define PARITYBIT   NONE_PARITY   //Testing even parity
+#define PARITYBIT       NONE_PARITY   //Testing even parity
 
 INTERRUPT(serial_isr, SI0_VECTOR);
 void uart_init(void);
