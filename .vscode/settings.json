@@ -10,6 +10,9 @@
         "stdio.h": "c",
         "stdbool.h": "c",
         "r05d.h": "c",
-        "uart.h": "c"
+        "uart.h": "c",
+        "main.h": "c",
+        "ir_drv.h": "c",
+        "driver.h": "c"
     }
 }
