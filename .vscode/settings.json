@@ -13,6 +13,7 @@
         "uart.h": "c",
         "main.h": "c",
         "ir_drv.h": "c",
-        "driver.h": "c"
+        "driver.h": "c",
+        "static_assert.h": "c"
     }
 }

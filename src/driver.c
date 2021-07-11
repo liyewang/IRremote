@@ -6,17 +6,15 @@
 volatile uint16_t timer0;
 volatile uint16_t timer1;
 volatile uint16_t timer1_count;
-static uint16_t timer_cycle_on;
-static uint16_t timer_cycle_off;
-static uint16_t recv_timeout;
+uint16_t timer_cycle_on;
+uint16_t timer_cycle_off;
+uint16_t recv_timeout;
 volatile ir_signal_t signal;
 volatile static ir_signal_t signal_next;
 volatile static bool signal_loaded;
-volatile static bool IE1_flag;
-volatile static bool recv_timeout_flag;
-
+volatile bool IE1_flag;
 volatile static bool tx_busy = false;
-volatile static bool rx_ready = false;
+volatile bool rx_ready = false;
 volatile static uint8_t rx_byte = 0;
 #if (PARITYBIT != NONE_PARITY)
 volatile static bool bit9;
@@ -24,18 +22,14 @@ volatile static bool bit9;
 
 void hw_init(void)
 {
-    // Output
-    IR_TX = 0;
-    LED = 1;
-
-    // Timer
+    IR_TX = IR_TX_OFF;
+    LED = LED_OFF;
     Timer0Init;
     Timer1Init;
-    
+    setIntExt0(false);
+    setModeExt1(ExtMode_Fall);
     uart_init();
-
-    // Interrupt
-    EA = 1;         // open global interrupt switch
+    setIntGlobal(true);
 }
 
 /* IR */
@@ -43,29 +37,30 @@ void IRTxEnable(const bool en)
 {
     if (en)
     {
-        setIntExt0(false);
+        // setIntExt0(false);
         setIntExt1(false);
         setIntUart(false);
         setUartRecv(false);
-        setIntGlobal(true);
+        // setIntGlobal(true);
     }
     setIntTimer0(en);
-    setIntTimer0(en);
+    setIntTimer1(en);
 }
 
 void IRRxEnable(const bool en)
 {
     if (en)
     {
-        setIntExt0(false);
-        setIntExt1(false);
+        // setIntExt0(false);
         setUartRecv(false);
         setIntTimer0(false);
-        setIntGlobal(true);
+        // setIntGlobal(true);
     }
+    setIntExt1(en);
     setIntUart(en);
-    setIntTimer0(en);
+    setIntTimer1(en);
 }
+
 /* Timer 0 interrupt routine */
 INTERRUPT(timer0_isr, TF0_VECTOR)
 {
@@ -77,15 +72,19 @@ INTERRUPT(timer0_isr, TF0_VECTOR)
         IR_TX = !IR_TX;
         LED = !LED;
         // prepare timer0 for the next INT
-        if (IR_TX)
+        if (IR_TX == IR_TX_ON)
+        {
             timer0 = timer_cycle_off + TIMER0_OFFSET;
+        }
         else
+        {
             timer0 = timer_cycle_on + TIMER0_OFFSET;
+        }
     }
     else
     {
-        IR_TX = 0;
-        LED = 1;
+        IR_TX = IR_TX_OFF;
+        LED = LED_OFF;
     }
 }
 
@@ -94,14 +93,20 @@ INTERRUPT(timer1_isr, TF1_VECTOR)
 {
     Timer1Set(timer1);
     if (timer1_count)
+    {
         timer1_count--;
+    }
     else
     {
         signal = signal_next;
         if (signal == IR_MARK)
+        {
             timer0 = timer_cycle_on;
+        }
         else
+        {
             TR0 = 0;
+        }
         timer0_isr();
         signal_loaded = false;
     }
@@ -110,24 +115,27 @@ INTERRUPT(timer1_isr, TF1_VECTOR)
 /* External interrupt 1 routine */
 INTERRUPT(extern1_isr, IE1_VECTOR)
 {
+    Timer1Set(TMR16_1MS + TIMER1_OFFSET + TIMER1_OFFSET);
+    timer1 = TMR16_1MS + TIMER1_OFFSET;
+    timer1_count = (uint16_t)~0;
     IE1_flag = true;
 }
 
-bool get_IE1_flag(void)
+void setTimerMS(const bool en)
 {
-    if (IE1_flag)
+    if (en)
     {
-        IE1_flag = false;
-        return true;
+        timer1 = TMR16_1MS + TIMER1_OFFSET;
+        timer1_count = (uint16_t)~0;
+        setIntTimer1(true);
+        // setIntGlobal(true);
+        Timer1Set(TMR16_1MS + TIMER1_OFFSET);
     }
     else
-        return false;
-}
-
-void set_IR_signal_duty(uint16_t cycle_on, uint16_t cycle_off)
-{
-    timer_cycle_on = cycle_on;
-    timer_cycle_off = cycle_off;
+    {
+        setIntTimer1(false);
+        timer1_count = 0;
+    }
 }
 
 #pragma save
@@ -144,30 +152,33 @@ void send_IR_signal(ir_signal_t sig_next, uint16_t sig_dur_rem, uint8_t sig_dur_
 }
 #pragma restore
 
-// void set_IR_recv_timeout(uint16_t dur_us)
-// {
-//     recv_timeout = dur_us;
-// }
-
-// bool get_IR_recv_timeout(void)
-// {
-//     if (recv_timeout_flag)
-//     {
-//         recv_timeout_flag = false;
-//         return true;
-//     }
-//     else
-//         return false;
-// }
-
-// void recv_IR_signal(ir_signal_t* const sig, uint16_t* const dur_us)
-// {
-//     timer1_count = ~(uint16_t)0;
-//     signal = IR_MARK;
-//     IRRxEnable(true);
-//     timer1 = TMR16_10US + TIMER1_OFFSET;
-//     Timer1Set(TMR16_10US + TIMER1_OFFSET + 30);
-// }
+/* recv_IR_signal must be call just after extern1_isr has been called */
+void recv_IR_signal(uint16_t* const mark_dur_us, uint16_t* const space_dur_us)
+{
+    uint16_t us;
+    uint16_t ms;
+    *mark_dur_us = 0;
+    *space_dur_us = 0;
+    while (timer1_count > (TMR_MAX16 - recv_timeout))
+    {
+        if (IR_RX == IR_RX_SPACE)
+        {
+            us = Timer1Get;
+            ms = ~timer1_count * 1024;
+            us = ((uint16_t)(us - TMR16_1MS) / (uint16_t)(SYSCLK / DIV_1US));
+            if (*mark_dur_us == 0)
+            {
+                *mark_dur_us = ms + us;
+            }
+            *space_dur_us = ms + us - *mark_dur_us;
+        }
+        if (IE1_flag)
+        {
+            return;
+        }
+    }
+    *space_dur_us = (uint16_t)~0;
+}
 
 // void pulseGen(void)
 // {
@@ -223,7 +234,7 @@ void uartDisable(void)
 
 void uartTxOnly(void)
 {
-    setIntGlobal(true);
+    // setIntGlobal(true);
     setIntUart(true);
     setUartRecv(false);
 }
@@ -231,7 +242,7 @@ void uartTxOnly(void)
 void uartTxRxEnable(void)
 {
     setIntUart(true);
-    setIntGlobal(true);
+    // setIntGlobal(true);
     setUartRecv(true);
 }
 
@@ -311,15 +322,12 @@ void uart_send_string(const char* const str)
 {
     const char* s = str;
     while (*s)                  //Check the end of the string
+    {
         uart_send_data(*s++);   //Send current char and increment string ptr
+    }
 }
 
-bool uart_recv_ready(void)
-{
-    return rx_ready;
-}
-
-void uart_recv_data(uint8_t* dat)
+void uart_recv_data(uint8_t* const dat)
 {
     if (rx_ready)
     {
@@ -329,3 +337,25 @@ void uart_recv_data(uint8_t* dat)
         ES = 1;     // Enable UART interrupt
     }
 }
+
+// void uart_send_hex_string(const uint8_t data)
+// {
+//     uint8_t data_H = data >> 4;
+//     uint8_t data_L = data & 0xf;
+//     if (data_H > 9)
+//     {
+//         uart_send_data('A' + data_H - 10);
+//     }
+//     else
+//     {
+//         uart_send_data('0' + data_H);
+//     }
+//     if (data_L > 9)
+//     {
+//         uart_send_data('A' + data_L - 10);
+//     }
+//     else
+//     {
+//         uart_send_data('0' + data_L);
+//     }
+// }
