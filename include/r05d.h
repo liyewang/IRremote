@@ -1,8 +1,6 @@
 #ifndef _R05D_H_
 #define _R05D_H_
 
-#include "driver.h"
-
 #define R05D_BLK_SZ         6
 #define R05D_BUFF_SZ        (R05D_BLK_SZ * 3)
 
@@ -20,49 +18,45 @@
 // R05D LEAD symbol
 #define R05D_L_1_SYM        IR_MARK
 #define R05D_L_1_DUR_US     4400
-#define R05D_L_1_DUR_MAX  (R05D_L_1_DUR_US * R05D_DUR_ERR_MAX)
-#define R05D_L_1_DUR_MIN  (R05D_L_1_DUR_US * R05D_DUR_ERR_MIN)
+#define R05D_L_1_DUR_MAX    (R05D_L_1_DUR_US * R05D_DUR_ERR_MAX)
+#define R05D_L_1_DUR_MIN    (R05D_L_1_DUR_US * R05D_DUR_ERR_MIN)
 
 #define R05D_L_2_SYM        IR_SPACE
 #define R05D_L_2_DUR_US     4400
-#define R05D_L_2_DUR_MAX  (R05D_L_2_DUR_US * R05D_DUR_ERR_MAX)
-#define R05D_L_2_DUR_MIN  (R05D_L_2_DUR_US * R05D_DUR_ERR_MIN)
+#define R05D_L_2_DUR_MAX    (R05D_L_2_DUR_US * R05D_DUR_ERR_MAX)
+#define R05D_L_2_DUR_MIN    (R05D_L_2_DUR_US * R05D_DUR_ERR_MIN)
 
 // R05D STOP symbol
 #define R05D_S_1_SYM        IR_MARK
 #define R05D_S_1_DUR_US     540
-#define R05D_S_1_DUR_MAX  (R05D_S_1_DUR_US * R05D_DUR_ERR_MAX)
-#define R05D_S_1_DUR_MIN  (R05D_S_1_DUR_US * R05D_DUR_ERR_MIN)
+#define R05D_S_1_DUR_MAX    (R05D_S_1_DUR_US * R05D_DUR_ERR_MAX)
+#define R05D_S_1_DUR_MIN    (R05D_S_1_DUR_US * R05D_DUR_ERR_MIN)
 
 #define R05D_S_2_SYM        IR_SPACE
 #define R05D_S_2_DUR_US     5220
-#define R05D_S_2_DUR_MAX  (R05D_S_2_DUR_US * R05D_DUR_ERR_MAX)
-#define R05D_S_2_DUR_MIN  (R05D_S_2_DUR_US * R05D_DUR_ERR_MIN)
+#define R05D_S_2_DUR_MAX    (R05D_S_2_DUR_US * R05D_DUR_ERR_MAX)
+#define R05D_S_2_DUR_MIN    (R05D_S_2_DUR_US * R05D_DUR_ERR_MIN)
 
 // R05D 1 symbol
 #define R05D_1_1_SYM        IR_MARK
 #define R05D_1_1_DUR_US     540
-#define R05D_1_1_DUR_MAX  (R05D_1_1_DUR_US * R05D_DUR_ERR_MAX)
-#define R05D_1_1_DUR_MIN  (R05D_1_1_DUR_US * R05D_DUR_ERR_MIN)
+#define R05D_1_1_DUR_MAX    (R05D_1_1_DUR_US * R05D_DUR_ERR_MAX)
+#define R05D_1_1_DUR_MIN    (R05D_1_1_DUR_US * R05D_DUR_ERR_MIN)
 
 #define R05D_1_2_SYM        IR_SPACE
 #define R05D_1_2_DUR_US     1620
-#define R05D_1_2_DUR_MAX  (R05D_1_2_DUR_US * R05D_DUR_ERR_MAX)
-#define R05D_1_2_DUR_MIN  (R05D_1_2_DUR_US * R05D_DUR_ERR_MIN)
+#define R05D_1_2_DUR_MAX    (R05D_1_2_DUR_US * R05D_DUR_ERR_MAX)
+#define R05D_1_2_DUR_MIN    (R05D_1_2_DUR_US * R05D_DUR_ERR_MIN)
 
 // R05D 0 symbol
 #define R05D_0_1_SYM        IR_MARK
 #define R05D_0_1_DUR_US     540
-#define R05D_0_1_DUR_MAX  (R05D_0_1_DUR_US * R05D_DUR_ERR_MAX)
-#define R05D_0_1_DUR_MIN  (R05D_0_1_DUR_US * R05D_DUR_ERR_MIN)
+#define R05D_0_1_DUR_MAX    (R05D_0_1_DUR_US * R05D_DUR_ERR_MAX)
+#define R05D_0_1_DUR_MIN    (R05D_0_1_DUR_US * R05D_DUR_ERR_MIN)
 
 #define R05D_0_2_SYM        IR_SPACE
 #define R05D_0_2_DUR_US     540
-#define R05D_0_2_DUR_MAX  (R05D_0_2_DUR_US * R05D_DUR_ERR_MAX)
-#define R05D_0_2_DUR_MIN  (R05D_0_2_DUR_US * R05D_DUR_ERR_MIN)
-
-void R05D_task(void);
-static void R05D_tx(const uint8_t* const data, const uint8_t size);
-static void R05D_rx(void);
+#define R05D_0_2_DUR_MAX    (R05D_0_2_DUR_US * R05D_DUR_ERR_MAX)
+#define R05D_0_2_DUR_MIN    (R05D_0_2_DUR_US * R05D_DUR_ERR_MIN)
 
 #endif /* _R05D_H_ */

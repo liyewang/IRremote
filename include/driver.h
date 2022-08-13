@@ -98,7 +98,14 @@ typedef enum
         (sig_next),                                                                     \
         (TMR_MAX16 - ((((sig_dur_us) * SYSCLK / DIV_1US) * 2 + 1) / 2) % TMR_MAX16),    \
         (((((sig_dur_us) * SYSCLK / DIV_1US) * 2 + 1) / 2) / TMR_MAX16)                 \
-        );
+        )
+
+#define send_IR_signal_us_lite(sig_next, sig_dur_us)                                    \
+    send_IR_signal(                                                                     \
+        (sig_next),                                                                     \
+        (TMR_MAX16 - ((sig_dur_us) * 22) % TMR_MAX16),                                  \
+        (((sig_dur_us) * 22) / TMR_MAX16)                                               \
+        )
 
 #define set_IR_signal_duty(cycle_on, cycle_off) \
     {                                           \
