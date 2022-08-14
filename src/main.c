@@ -9,23 +9,27 @@
 #if defined(GENE)
 /* ================================ Generic ================================= */
 #include "generic.h"
-#define TASK() GENE_task()
 
 static void GENE_tx(const uint8_t* const data, const uint8_t size)
 {
-    uint8_t data_idx = 0;
+    uint8_t idx = 0;
     if (size % GENE_BLK_SZ == 0)
     {
         set_IR_signal_duty(TMR38K_CYCLE_ON, TMR38K_CYCLE_OFF);
         Timer1Set(INT_DELAY_TIMER);
         IRTxEnable(true);
-        while (data_idx < size / 2)
+        while (idx < size / 2)
         {
-            send_IR_signal_us_lite(IR_MARK, ((uint16_t*)data)[data_idx++]);
-            send_IR_signal_us_lite(IR_SPACE, ((uint16_t*)data)[data_idx++]);
+            send_IR_symbol_us_lite(((uint16_t*)data)[idx++], ((uint16_t*)data)[idx++]);
         }
         IRTxEnable(false);
+        idx = 0x06; // ACK
     }
+    else
+    {
+        idx = 0x15; // NAK
+    }
+    uart_send_data(idx);
 }
 
 static void GENE_rx(void)
@@ -52,29 +56,41 @@ static void GENE_rx(void)
     setTimerMS(false);
 }
 
-void GENE_task(void)
+/* main program */
+void main(void)
 {
-    uint8_t buffer[GENE_BUFF_SZ];
-    uint8_t buffer_idx = 0;
-    uartTxRxEnable();
-    setIntExt1(true);
-    if (uart_recv_ready)
+    uint8_t buf[GENE_BUF_SZ];
+    uint8_t idx;
+
+    hw_init();
+
+    // main loop
+    while (1)
     {
-        setTimerMS(true);
-        while (get_timer_ms < RX_SIG_TIMEOUT_MS)
+        for (idx = 0; idx < GENE_BUF_SZ; idx++)
         {
-            if (uart_recv_ready)
-            {
-                uart_recv_data(buffer + buffer_idx);
-                uart_send_data(buffer[buffer_idx++]);
-            }
+            buf[idx] = 0;
         }
-        setTimerMS(false);
-        GENE_tx(buffer, buffer_idx);
-    }
-    if (get_IR_recv_sig)
-    {
-        GENE_rx();
+        idx = 0;
+        uartTxRxEnable();
+        setIntExt1(true);
+        if (uart_recv_ready)
+        {
+            setTimerMS(true);
+            while (get_timer_ms < RX_SIG_TIMEOUT_MS)
+            {
+                if (uart_recv_ready && idx < GENE_BUF_SZ)
+                {
+                    uart_recv_data(buf + idx++);
+                }
+            }
+            setTimerMS(false);
+            GENE_tx(buf, idx);
+        }
+        else if (get_IR_recv_sig)
+        {
+            GENE_rx();
+        }
     }
 }
 /* ================================ Generic ================================= */
@@ -83,66 +99,59 @@ void GENE_task(void)
 
 /* ================================== R05D ================================== */
 #include "r05d.h"
-#define TASK() R05D_task()
 
 static void R05D_tx(const uint8_t* const data, const uint8_t size)
 {
-    if (size % R05D_BLK_SZ == 0)
+    uint8_t msg;
+    if (size == R05D_BLK_SZ * 2 || size == R05D_BLK_SZ * 3)
     {
         set_IR_signal_duty(TMR38K_CYCLE_ON, TMR38K_CYCLE_OFF);
         Timer1Set(INT_DELAY_TIMER);
         IRTxEnable(true);
-        for (uint8_t data_idx = 0; data_idx < size; data_idx++)
+        for (uint8_t idx = 0; idx < size; idx++)
         {
-            if (data_idx % R05D_BLK_SZ == 0)
+            if (idx == 0 || idx == R05D_BLK_SZ || idx == R05D_BLK_SZ * 2)
             {
-                send_IR_signal_us(R05D_L_1_SYM, R05D_L_1_DUR_US);
-                send_IR_signal_us(R05D_L_2_SYM, R05D_L_2_DUR_US);
+                send_IR_symbol_us(R05D_L_M_US, R05D_L_S_US);
             }
-            for (uint8_t bit_idx = 0; bit_idx < 8; bit_idx++)
+            for (uint8_t mask = 0x80; mask; mask >>= 1)
             {
-                if (data[data_idx] & (0x80 >> bit_idx))
+                if (data[idx] & mask)
                 {
-                    send_IR_signal_us(R05D_1_1_SYM, R05D_1_1_DUR_US);
-                    send_IR_signal_us(R05D_1_2_SYM, R05D_1_2_DUR_US);
+                    send_IR_symbol_us(R05D_1_M_US, R05D_1_S_US);
                 }
                 else
                 {
-                    send_IR_signal_us(R05D_0_1_SYM, R05D_0_1_DUR_US);
-                    send_IR_signal_us(R05D_0_2_SYM, R05D_0_2_DUR_US);
+                    send_IR_symbol_us(R05D_0_M_US, R05D_0_S_US);
                 }
             }
-            if (data_idx % R05D_BLK_SZ == R05D_BLK_SZ - 1)
+            if (idx == R05D_BLK_SZ - 1 || idx == R05D_BLK_SZ * 2 - 1 || idx == R05D_BLK_SZ * 3 - 1)
             {
-                send_IR_signal_us(R05D_S_1_SYM, R05D_S_1_DUR_US);
-                send_IR_signal_us(R05D_S_2_SYM, R05D_S_2_DUR_US);
+                send_IR_symbol_us(R05D_S_M_US, R05D_S_S_US);
             }
         }
         IRTxEnable(false);
+        msg = 0x06; // ACK
     }
+    else
+    {
+        msg = 0x15; // NAK
+    }
+    uart_send_data(msg);
 }
 
-static void R05D_rx(void)
+static void R05D_rx(uint8_t* const data)
 {
     enum
     {
         STATE_INIT,
         STATE_DATA,
-        STATE_STOP,
         STATE_FAIL
     } state = STATE_INIT;
-    enum
-    {
-        R05D_INIT,
-        R05D_L,
-        R05D_S,
-        R05D_1,
-        R05D_0
-    } symbol;
     uint16_t mark_dur_us;
     uint16_t space_dur_us;
-    uint8_t data = 0;
-    uint8_t bit_idx = 0;
+    uint8_t mask = 0x80;
+    uint8_t idx = 0;
     set_IR_recv_timeout(RX_SIG_TIMEOUT_MS);
     setTimerMS(true);
     IRRxEnable(true);
@@ -151,117 +160,112 @@ static void R05D_rx(void)
         if (get_IE1_flag)
         {
             recv_IR_signal(&mark_dur_us, &space_dur_us);
-            if (mark_dur_us > R05D_L_1_DUR_MIN)
+            if (state == STATE_INIT)
             {
-                if (mark_dur_us < R05D_L_1_DUR_MAX
-                    && space_dur_us > R05D_L_2_DUR_MIN
-                    && space_dur_us < R05D_L_2_DUR_MAX)
+                if (R05D_IN_DUR(R05D_L_M_US, mark_dur_us)
+                    && R05D_IN_DUR(R05D_L_S_US, space_dur_us))
                 {
-                    symbol = R05D_L;
-                    if (state == STATE_INIT)
-                    {
-                        state = STATE_DATA;
-                    }
-                    else
-                    {
-                        state = STATE_FAIL;
-                    }
+                    state = STATE_DATA;
+                }
+                else
+                {
+                    state = STATE_FAIL;
                 }
             }
-            else if (mark_dur_us > R05D_S_1_DUR_MIN && mark_dur_us < R05D_S_1_DUR_MAX)
-            {
-                if (space_dur_us < R05D_0_2_DUR_MAX)
-                {
-                    if (space_dur_us > R05D_0_2_DUR_MIN)
-                    {
-                        symbol = R05D_0;
-                        bit_idx++;
-                        if (state != STATE_DATA)
-                        {
-                            state = STATE_FAIL;
-                        }
-                    }
-                }
-                else if (space_dur_us < R05D_1_2_DUR_MAX)
-                {
-                    if (space_dur_us > R05D_1_2_DUR_MIN)
-                    {
-                        symbol = R05D_1;
-                        data |= (0x80 >> bit_idx++);
-                        if (state != STATE_DATA)
-                        {
-                            state = STATE_FAIL;
-                        }
-                    }
-                }
-                else if (space_dur_us > R05D_S_2_DUR_MIN)
-                {
-                    symbol = R05D_S;
-                    if (state == STATE_DATA && bit_idx == 0)
-                    {
-                        if (space_dur_us < R05D_S_2_DUR_MAX)
-                        {
-                            state = STATE_INIT;
-                        }
-                        else
-                        {
-                            state = STATE_STOP;
-                        }
-                    }
-                    else
-                    {
-                        state = STATE_FAIL;
-                    }
-                }
-            }
-            else
+            else if (state == STATE_DATA)
             {
                 state = STATE_FAIL;
-            }
-            if (state == STATE_DATA && bit_idx == 8)
-            {
-                uart_send_data(data);
-                data = 0;
-                bit_idx = 0;
-            }
-            if (state == STATE_STOP || state == STATE_FAIL)
-            {
-                break;
+                if (R05D_IN_DUR(R05D_U_M_US, mark_dur_us))
+                {
+                    if (R05D_IN_DUR(R05D_0_S_US, space_dur_us))
+                    {
+                        if (idx < R05D_BUF_SZ)
+                        {
+                            state = STATE_DATA;
+                            mask >>= 1;
+                        }
+                    }
+                    else if (R05D_IN_DUR(R05D_1_S_US, space_dur_us))
+                    {
+                        if (idx < R05D_BUF_SZ)
+                        {
+                            state = STATE_DATA;
+                            data[idx] |= mask;
+                            mask >>= 1;
+                        }
+                    }
+                    else if (R05D_GT_MIN(R05D_S_S_US, space_dur_us))
+                    {
+                        if (mask == 0x80)
+                        {
+                            if (R05D_LS_MAX(R05D_S_S_US, space_dur_us))
+                            {
+                                if (idx == R05D_BLK_SZ || idx == R05D_BLK_SZ * 2)
+                                {
+                                    state = STATE_INIT;
+                                }
+                            }
+                            else
+                            {
+                                if (idx == R05D_BLK_SZ * 2 || idx == R05D_BLK_SZ * 3)
+                                {
+                                    for (uint8_t i = 0; i < idx; i++)
+                                    {
+                                        uart_send_data(data[i]);
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if (!mask)
+                    {
+                        idx++;
+                        mask = 0x80;
+                    }
+                }
             }
         }
     }
     IRRxEnable(false);
     setTimerMS(false);
-    if (state == STATE_STOP)
-        data = 0x00;
-    else
-        data = 0xee;
-    uart_send_data(data);
 }
 
-void R05D_task(void)
+/* main program */
+void main(void)
 {
-    uint8_t buffer[R05D_BUFF_SZ];
-    uint8_t buffer_idx = 0;
-    uartTxRxEnable();
-    setIntExt1(true);
-    if (uart_recv_ready)
+    uint8_t buf[R05D_BUF_SZ];
+    uint8_t idx;
+
+    hw_init();
+
+    // main loop
+    while (1)
     {
-        setTimerMS(true);
-        while (get_timer_ms < RX_SIG_TIMEOUT_MS && buffer_idx < HISE_DATA_SZ)
+        for (idx = 0; idx < R05D_BUF_SZ; idx++)
         {
-            if (uart_recv_ready)
-            {
-                uart_recv_data(buffer + buffer_idx);
-                uart_send_data(buffer[buffer_idx++]);
-            }
+            buf[idx] = 0;
         }
-        setTimerMS(false);
-        R05D_tx(buffer, buffer_idx);
-    }
-    if (get_IR_recv_sig)
-    {
-        R05D_rx();
+        idx = 0;
+        uartTxRxEnable();
+        setIntExt1(true);
+        if (uart_recv_ready)
+        {
+            setTimerMS(true);
+            while (get_timer_ms < RX_SIG_TIMEOUT_MS)
+            {
+                if (uart_recv_ready && idx < R05D_BUF_SZ)
+                {
+                    uart_recv_data(buf + idx++);
+                }
+            }
+            setTimerMS(false);
+            R05D_tx(buf, idx);
+        }
+        else if (get_IR_recv_sig)
+        {
+            R05D_rx(buf);
+        }
     }
 }
 /* ================================== R05D ================================== */
@@ -270,65 +274,71 @@ void R05D_task(void)
 
 /* ================================ Hisense ================================= */
 #include "hisense.h"
-#define TASK() HISE_task()
+
+#define CHECKSUM
 
 static void HISE_tx(uint8_t* const data, const uint8_t size)
 {
+    uint8_t msg;
+#ifdef CHECKSUM
     if (size == HISE_DATA_SZ - 1)
+#else
+    if (size == HISE_DATA_SZ)
+#endif
     {
+#ifdef CHECKSUM
         data[HISE_CKS_IDX] = data[0] ^ data[1];   // pre-remove customer code from checksum
+#endif
         set_IR_signal_duty(TMR38K_CYCLE_ON, TMR38K_CYCLE_OFF);
         Timer1Set(INT_DELAY_TIMER);
         IRTxEnable(true);
-        send_IR_signal_us(HISE_L_1_SYM, HISE_L_1_DUR_US);
-        send_IR_signal_us(HISE_L_2_SYM, HISE_L_2_DUR_US);
-        for (uint8_t data_idx = 0; data_idx < HISE_DATA_SZ; data_idx++)
+        send_IR_symbol_us(HISE_L_M_US, HISE_L_S_US);
+        for (uint8_t idx = 0; idx < HISE_DATA_SZ; idx++)
         {
-            for (uint8_t bit_idx = 0; bit_idx < 8; bit_idx++)
+            for (uint8_t mask = 0x01; mask; mask <<= 1)
             {
-                if (data[data_idx] & (0x01 << bit_idx))
+                if (data[idx] & mask)
                 {
-                    send_IR_signal_us(HISE_1_1_SYM, HISE_1_1_DUR_US);
-                    send_IR_signal_us(HISE_1_2_SYM, HISE_1_2_DUR_US);
+                    send_IR_symbol_us(HISE_1_M_US, HISE_1_S_US);
                 }
                 else
                 {
-                    send_IR_signal_us(HISE_0_1_SYM, HISE_0_1_DUR_US);
-                    send_IR_signal_us(HISE_0_2_SYM, HISE_0_2_DUR_US);
+                    send_IR_symbol_us(HISE_0_M_US, HISE_0_S_US);
                 }
             }
-            data[HISE_CKS_IDX] ^= data[data_idx];
-            if (data_idx == HISE_BLK1_SZ - 1 || data_idx == HISE_DATA_SZ - 1)
+#ifdef CHECKSUM
+            data[HISE_CKS_IDX] ^= data[idx];
+#endif
+            if (idx == HISE_BLK1_SZ - 1 || idx == HISE_DATA_SZ - 1)
             {
-                send_IR_signal_us(HISE_S_1_SYM, HISE_S_1_DUR_US);
-                send_IR_signal_us(HISE_S_2_SYM, HISE_S_2_DUR_US);
+                send_IR_symbol_us(HISE_S_M_US, HISE_S_S_US);
             }
         }
         IRTxEnable(false);
+        msg = 0x06; // ACK
     }
+    else
+    {
+        msg = 0x15; // NAK
+    }
+    uart_send_data(msg);
 }
 
-static void HISE_rx(void)
+static void HISE_rx(uint8_t* const data)
 {
     enum
     {
         STATE_INIT,
         STATE_DATA,
-        STATE_STOP,
         STATE_FAIL
     } state = STATE_INIT;
-    enum
-    {
-        HISE_INIT,
-        HISE_L,
-        HISE_S,
-        HISE_1,
-        HISE_0
-    } symbol;
     uint16_t mark_dur_us;
     uint16_t space_dur_us;
-    uint8_t data = 0;
-    uint8_t bit_idx = 0;
+    uint8_t mask = 0x01;
+    uint8_t idx = 0;
+#ifdef CHECKSUM
+    uint8_t checksum = 0;
+#endif
     set_IR_recv_timeout(RX_SIG_TIMEOUT_MS);
     setTimerMS(true);
     IRRxEnable(true);
@@ -337,113 +347,124 @@ static void HISE_rx(void)
         if (get_IE1_flag)
         {
             recv_IR_signal(&mark_dur_us, &space_dur_us);
-            if (mark_dur_us > HISE_L_1_DUR_MIN)
+            if (state == STATE_INIT)
             {
-                if (mark_dur_us < HISE_L_1_DUR_MAX
-                    && space_dur_us > HISE_L_2_DUR_MIN
-                    && space_dur_us < HISE_L_2_DUR_MAX)
+                if (HISE_IN_DUR(HISE_L_M_US, mark_dur_us)
+                    && HISE_IN_DUR(HISE_L_S_US, space_dur_us))
                 {
-                    symbol = HISE_L;
-                    if (state == STATE_INIT)
-                    {
-                        state = STATE_DATA;
-                    }
-                    else
-                    {
-                        state = STATE_FAIL;
-                    }
+                    state = STATE_DATA;
+                }
+                else
+                {
+                    state = STATE_FAIL;
                 }
             }
-            else if (mark_dur_us > HISE_S_1_DUR_MIN && mark_dur_us < HISE_S_1_DUR_MAX)
-            {
-                if (space_dur_us < HISE_0_2_DUR_MAX)
-                {
-                    if (space_dur_us > HISE_0_2_DUR_MIN)
-                    {
-                        symbol = HISE_0;
-                        bit_idx++;
-                        if (state != STATE_DATA)
-                        {
-                            state = STATE_FAIL;
-                        }
-                    }
-                }
-                else if (space_dur_us < HISE_1_2_DUR_MAX)
-                {
-                    if (space_dur_us > HISE_1_2_DUR_MIN)
-                    {
-                        symbol = HISE_1;
-                        data |= (0x01 << bit_idx++);
-                        if (state != STATE_DATA)
-                        {
-                            state = STATE_FAIL;
-                        }
-                    }
-                }
-                else if (space_dur_us > HISE_S_2_DUR_MIN)
-                {
-                    symbol = HISE_S;
-                    if (state == STATE_DATA && bit_idx == 0)
-                    {
-                        if (space_dur_us > HISE_S_2_DUR_MAX)
-                        {
-                            state = STATE_STOP;
-                        }
-                    }
-                    else
-                    {
-                        state = STATE_FAIL;
-                    }
-                }
-            }
-            else
+            else if (state == STATE_DATA)
             {
                 state = STATE_FAIL;
-            }
-            if (state == STATE_DATA && bit_idx == 8)
-            {
-                uart_send_data(data);
-                data = 0;
-                bit_idx = 0;
-            }
-            if (state == STATE_STOP || state == STATE_FAIL)
-            {
-                break;
+                if (HISE_IN_DUR(HISE_U_M_US, mark_dur_us))
+                {
+                    if (HISE_IN_DUR(HISE_0_S_US, space_dur_us))
+                    {
+                        if (idx < HISE_DATA_SZ)
+                        {
+                            state = STATE_DATA;
+                            mask <<= 1;
+                        }
+                    }
+                    else if (HISE_IN_DUR(HISE_1_S_US, space_dur_us))
+                    {
+                        if (idx < HISE_DATA_SZ)
+                        {
+                            state = STATE_DATA;
+                            data[idx] |= mask;
+                            mask <<= 1;
+                        }
+                    }
+                    else if (HISE_GT_MIN(HISE_S_S_US, space_dur_us))
+                    {
+                        if (mask == 0x01)
+                        {
+                            if (HISE_LS_MAX(HISE_S_S_US, space_dur_us))
+                            {
+                                if (idx == HISE_BLK1_SZ)
+                                {
+                                    state = STATE_DATA;
+                                }
+                            }
+                            else
+                            {
+#ifdef CHECKSUM
+                                if ((idx == HISE_DATA_SZ) && (checksum == data[HISE_CKS_IDX]))
+                                {
+                                    for (idx = 0; idx < HISE_CKS_IDX; idx++)
+#else
+                                if ((idx == HISE_DATA_SZ))
+                                {
+                                    for (idx = 0; idx < HISE_DATA_SZ; idx++)
+#endif
+                                    {
+                                        uart_send_data(data[idx]);
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if (!mask)
+                    {
+#ifdef CHECKSUM
+                        if (idx > HISE_CUST_SZ - 1 && idx < HISE_CKS_IDX)
+                        {
+                            checksum ^= data[idx];
+                        }
+#endif
+                        idx++;
+                        mask = 0x01;
+                    }
+                }
             }
         }
     }
     IRRxEnable(false);
     setTimerMS(false);
-    if (state == STATE_STOP)
-        data = 0x00;
-    else
-        data = 0xee;
-    uart_send_data(data);
 }
 
-void HISE_task(void)
+/* main program */
+void main(void)
 {
-    uint8_t buffer[HISE_DATA_SZ];
-    uint8_t buffer_idx = 0;
-    uartTxRxEnable();
-    setIntExt1(true);
-    if (uart_recv_ready)
+    uint8_t buf[HISE_DATA_SZ];
+    uint8_t idx;
+
+    hw_init();
+
+    // main loop
+    while (1)
     {
-        setTimerMS(true);
-        while (get_timer_ms < RX_SIG_TIMEOUT_MS && buffer_idx < HISE_DATA_SZ)
+        for (idx = 0; idx < HISE_DATA_SZ; idx++)
         {
-            if (uart_recv_ready)
-            {
-                uart_recv_data(buffer + buffer_idx);
-                uart_send_data(buffer[buffer_idx++]);
-            }
+            buf[idx] = 0;
         }
-        setTimerMS(false);
-        HISE_tx(buffer, buffer_idx);
-    }
-    if (get_IR_recv_sig)
-    {
-        HISE_rx();
+        idx = 0;
+        uartTxRxEnable();
+        setIntExt1(true);
+        if (uart_recv_ready)
+        {
+            setTimerMS(true);
+            while (get_timer_ms < RX_SIG_TIMEOUT_MS)
+            {
+                if (uart_recv_ready && idx < HISE_DATA_SZ)
+                {
+                    uart_recv_data(buf + idx++);
+                }
+            }
+            setTimerMS(false);
+            HISE_tx(buf, idx);
+        }
+        else if (get_IR_recv_sig)
+        {
+            HISE_rx(buf);
+        }
     }
 }
 /* ================================ Hisense ================================= */
@@ -451,18 +472,14 @@ void HISE_task(void)
 #else
 
 /* ================================== None ================================== */
-#define TASK()
-/* ================================== None ================================== */
-
-#endif
-
 /* main program */
 void main(void)
 {
     hw_init();
     // main loop
     while (1)
-    {
-        TASK();
-    }
+    {}
 }
+/* ================================== None ================================== */
+
+#endif

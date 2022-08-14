@@ -37,11 +37,9 @@ void IRTxEnable(const bool en)
 {
     if (en)
     {
-        // setIntExt0(false);
         setIntExt1(false);
         setIntUart(false);
         setUartRecv(false);
-        // setIntGlobal(true);
     }
     setIntTimer0(en);
     setIntTimer1(en);
@@ -51,13 +49,10 @@ void IRRxEnable(const bool en)
 {
     if (en)
     {
-        // setIntExt0(false);
         setUartRecv(false);
         setIntTimer0(false);
-        // setIntGlobal(true);
     }
     setIntExt1(en);
-    setIntUart(en);
     setIntTimer1(en);
 }
 
@@ -138,15 +133,36 @@ void setTimerMS(const bool en)
     }
 }
 
+// #pragma save
+// #pragma nogcse
+// void send_IR_signal(ir_signal_t sig_next, uint16_t sig_dur_rem, uint8_t sig_dur_mul)
+// {
+//     signal_next = sig_next;
+//     timer1 = sig_dur_rem + TIMER1_OFFSET;
+//     signal_loaded = true;
+//     while (signal_loaded);
+//     timer1_count = sig_dur_mul;
+//     timer1 = TIMER1_OFFSET;
+//     while (timer1_count);
+// }
+// #pragma restore
+
 #pragma save
 #pragma nogcse
-void send_IR_signal(ir_signal_t sig_next, uint16_t sig_dur_rem, uint8_t sig_dur_mul)
+void send_IR_symbol(uint16_t sym_mark_rem, uint8_t sym_mark_mul, uint16_t sym_space_rem, uint8_t sym_space_mul)
 {
-    signal_next = sig_next;
-    timer1 = sig_dur_rem + TIMER1_OFFSET;
+    signal_next = IR_MARK;
+    timer1 = sym_mark_rem + TIMER1_OFFSET;
     signal_loaded = true;
     while (signal_loaded);
-    timer1_count = sig_dur_mul;
+    timer1_count = sym_mark_mul;
+    timer1 = TIMER1_OFFSET;
+    while (timer1_count);
+    signal_next = IR_SPACE;
+    timer1 = sym_space_rem + TIMER1_OFFSET;
+    signal_loaded = true;
+    while (signal_loaded);
+    timer1_count = sym_space_mul;
     timer1 = TIMER1_OFFSET;
     while (timer1_count);
 }
@@ -234,7 +250,6 @@ void uartDisable(void)
 
 void uartTxOnly(void)
 {
-    // setIntGlobal(true);
     setIntUart(true);
     setUartRecv(false);
 }
@@ -242,7 +257,6 @@ void uartTxOnly(void)
 void uartTxRxEnable(void)
 {
     setIntUart(true);
-    // setIntGlobal(true);
     setUartRecv(true);
 }
 

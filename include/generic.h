@@ -2,7 +2,7 @@
 #define _GENERIC_H_
 
 #define GENE_BLK_SZ         4
-#define GENE_BUFF_SZ        56
+#define GENE_BUF_SZ         52
 
 #define GENE_DUR_ERR_MAX    2
 #define GENE_DUR_ERR_MIN    1 / 2

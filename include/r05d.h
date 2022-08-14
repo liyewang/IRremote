@@ -2,10 +2,13 @@
 #define _R05D_H_
 
 #define R05D_BLK_SZ         6
-#define R05D_BUFF_SZ        (R05D_BLK_SZ * 3)
+#define R05D_BUF_SZ         (R05D_BLK_SZ * 3)
 
 #define R05D_DUR_ERR_MAX    2
 #define R05D_DUR_ERR_MIN    1 / 2
+#define R05D_GT_MIN(n,r)    ((r) > (n) * R05D_DUR_ERR_MIN)
+#define R05D_LS_MAX(n,r)    ((r) < (n) * R05D_DUR_ERR_MAX)
+#define R05D_IN_DUR(n,r)    (R05D_LS_MAX(n,r) && R05D_GT_MIN(n,r))
 
 #define TMR38K              (TMR_MAX16 - SYSCLK / 38000)    // 38kHz timer counter for carrier wave
 #define TMR38K_DUTY_CYCLE   1 / 3                           // 1/3 duty cycle for 38kHz signals
@@ -15,48 +18,23 @@
 #define INT_DELAY_TIMER     (TMR_MAX16 - 100)
 #define RX_SIG_TIMEOUT_MS   30
 
-// R05D LEAD symbol
-#define R05D_L_1_SYM        IR_MARK
-#define R05D_L_1_DUR_US     4400
-#define R05D_L_1_DUR_MAX    (R05D_L_1_DUR_US * R05D_DUR_ERR_MAX)
-#define R05D_L_1_DUR_MIN    (R05D_L_1_DUR_US * R05D_DUR_ERR_MIN)
+// R05D unit duration
+#define R05D_U_M_US         540
 
-#define R05D_L_2_SYM        IR_SPACE
-#define R05D_L_2_DUR_US     4400
-#define R05D_L_2_DUR_MAX    (R05D_L_2_DUR_US * R05D_DUR_ERR_MAX)
-#define R05D_L_2_DUR_MIN    (R05D_L_2_DUR_US * R05D_DUR_ERR_MIN)
+// R05D LEAD symbol
+#define R05D_L_M_US         4400
+#define R05D_L_S_US         4400
 
 // R05D STOP symbol
-#define R05D_S_1_SYM        IR_MARK
-#define R05D_S_1_DUR_US     540
-#define R05D_S_1_DUR_MAX    (R05D_S_1_DUR_US * R05D_DUR_ERR_MAX)
-#define R05D_S_1_DUR_MIN    (R05D_S_1_DUR_US * R05D_DUR_ERR_MIN)
-
-#define R05D_S_2_SYM        IR_SPACE
-#define R05D_S_2_DUR_US     5220
-#define R05D_S_2_DUR_MAX    (R05D_S_2_DUR_US * R05D_DUR_ERR_MAX)
-#define R05D_S_2_DUR_MIN    (R05D_S_2_DUR_US * R05D_DUR_ERR_MIN)
+#define R05D_S_M_US         R05D_U_M_US
+#define R05D_S_S_US         5220
 
 // R05D 1 symbol
-#define R05D_1_1_SYM        IR_MARK
-#define R05D_1_1_DUR_US     540
-#define R05D_1_1_DUR_MAX    (R05D_1_1_DUR_US * R05D_DUR_ERR_MAX)
-#define R05D_1_1_DUR_MIN    (R05D_1_1_DUR_US * R05D_DUR_ERR_MIN)
-
-#define R05D_1_2_SYM        IR_SPACE
-#define R05D_1_2_DUR_US     1620
-#define R05D_1_2_DUR_MAX    (R05D_1_2_DUR_US * R05D_DUR_ERR_MAX)
-#define R05D_1_2_DUR_MIN    (R05D_1_2_DUR_US * R05D_DUR_ERR_MIN)
+#define R05D_1_M_US         R05D_U_M_US
+#define R05D_1_S_US         (R05D_U_M_US * 3)
 
 // R05D 0 symbol
-#define R05D_0_1_SYM        IR_MARK
-#define R05D_0_1_DUR_US     540
-#define R05D_0_1_DUR_MAX    (R05D_0_1_DUR_US * R05D_DUR_ERR_MAX)
-#define R05D_0_1_DUR_MIN    (R05D_0_1_DUR_US * R05D_DUR_ERR_MIN)
-
-#define R05D_0_2_SYM        IR_SPACE
-#define R05D_0_2_DUR_US     540
-#define R05D_0_2_DUR_MAX    (R05D_0_2_DUR_US * R05D_DUR_ERR_MAX)
-#define R05D_0_2_DUR_MIN    (R05D_0_2_DUR_US * R05D_DUR_ERR_MIN)
+#define R05D_0_M_US         R05D_U_M_US
+#define R05D_0_S_US         R05D_U_M_US
 
 #endif /* _R05D_H_ */

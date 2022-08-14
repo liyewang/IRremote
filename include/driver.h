@@ -92,7 +92,7 @@ typedef enum
 #define Timer1Get   ((uint16_t)TL1 | ((uint16_t)TH1 << 8))
 
 #define get_timer_ms    ((uint16_t)~timer1_count)
-
+/* 
 #define send_IR_signal_us(sig_next, sig_dur_us)                                         \
     send_IR_signal(                                                                     \
         (sig_next),                                                                     \
@@ -106,6 +106,22 @@ typedef enum
         (TMR_MAX16 - ((sig_dur_us) * 22) % TMR_MAX16),                                  \
         (((sig_dur_us) * 22) / TMR_MAX16)                                               \
         )
+ */
+#define send_IR_symbol_us(sym_mark_us, sym_space_us)                                    \
+    send_IR_symbol(                                                                     \
+        (TMR_MAX16 - ((((sym_mark_us) * SYSCLK / DIV_1US) * 2 + 1) / 2) % TMR_MAX16),   \
+        (((((sym_mark_us) * SYSCLK / DIV_1US) * 2 + 1) / 2) / TMR_MAX16),               \
+        (TMR_MAX16 - ((((sym_space_us) * SYSCLK / DIV_1US) * 2 + 1) / 2) % TMR_MAX16),  \
+        (((((sym_space_us) * SYSCLK / DIV_1US) * 2 + 1) / 2) / TMR_MAX16)               \
+    )
+
+#define send_IR_symbol_us_lite(sym_mark_us, sym_space_us)                               \
+    send_IR_symbol(                                                                     \
+        (TMR_MAX16 - ((sym_mark_us) * 22) % TMR_MAX16),                                 \
+        (((sym_mark_us) * 22) / TMR_MAX16),                                             \
+        (TMR_MAX16 - ((sym_space_us) * 22) % TMR_MAX16),                                \
+        (((sym_space_us) * 22) / TMR_MAX16)                                             \
+    )
 
 #define set_IR_signal_duty(cycle_on, cycle_off) \
     {                                           \
@@ -152,7 +168,8 @@ void IRTxEnable(const bool en);
 void IRRxEnable(const bool en);
 // bool get_IE1_flag(void);
 // void set_IR_signal_duty(uint16_t cycle_on, uint16_t cycle_off);
-void send_IR_signal(ir_signal_t sig_next, uint16_t sig_dur_rem, uint8_t sig_dur_mul);
+// void send_IR_signal(ir_signal_t sig_next, uint16_t sig_dur_rem, uint8_t sig_dur_mul);
+void send_IR_symbol(uint16_t sym_mark_rem, uint8_t sym_mark_mul, uint16_t sym_space_rem, uint8_t sym_space_mul);
 void recv_IR_signal(uint16_t* const mark_dur_us, uint16_t* const space_dur_us);
 void setTimerMS(const bool en);
 
