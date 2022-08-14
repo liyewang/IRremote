@@ -1,0 +1,24 @@
+{
+  "build": {
+    "f_cpu": "11059200",
+    "size_iram": 256,
+    "size_xram": 0,
+    "size_code": 2048,
+    "size_heap": 64,
+    "mcu": "stc11f02e",
+    "cpu": "mcs51"
+  },
+  "frameworks": [],
+  "upload": {
+    "maximum_ram_size": 256,
+    "maximum_size": 2048,
+    "protocol": "stcgal",
+    "stcgal_protocol": "stc12",
+    "protocols": [
+      "stcgal"
+    ]
+  },
+  "name": "Generic STC11F02E",
+  "url": "https://www.stcmicro.com/stc/stc11f60xe.html",
+  "vendor": "STC"
+}
