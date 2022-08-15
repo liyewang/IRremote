@@ -37,4 +37,6 @@
 #define R05D_0_M_US         R05D_U_M_US
 #define R05D_0_S_US         R05D_U_M_US
 
+void R05D_task(void);
+
 #endif /* _R05D_H_ */

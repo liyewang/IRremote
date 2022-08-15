@@ -1,9 +1,6 @@
 #ifndef _GENERIC_H_
 #define _GENERIC_H_
 
-#define GENE_BLK_SZ         4
-#define GENE_BUF_SZ         52
-
 #define GENE_DUR_ERR_MAX    2
 #define GENE_DUR_ERR_MIN    1 / 2
 
@@ -14,5 +11,7 @@
 
 #define INT_DELAY_TIMER     (TMR_MAX16 - 100)
 #define RX_SIG_TIMEOUT_MS   30
+
+void GENE_task(void);
 
 #endif /* _GENERIC_H_ */

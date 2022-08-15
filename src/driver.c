@@ -243,16 +243,16 @@ void recv_IR_signal(uint16_t* const mark_dur_us, uint16_t* const space_dur_us)
 
 
 /* UART */
-void uartDisable(void)
-{
-    setIntUart(false);
-}
+// void uartDisable(void)
+// {
+//     setIntUart(false);
+// }
 
-void uartTxOnly(void)
-{
-    setIntUart(true);
-    setUartRecv(false);
-}
+// void uartTxOnly(void)
+// {
+//     setIntUart(true);
+//     setUartRecv(false);
+// }
 
 void uartTxRxEnable(void)
 {
@@ -332,14 +332,14 @@ void uart_send_data(const uint8_t dat)
 
 }
 
-void uart_send_string(const char* const str)
-{
-    const char* s = str;
-    while (*s)                  //Check the end of the string
-    {
-        uart_send_data(*s++);   //Send current char and increment string ptr
-    }
-}
+// void uart_send_string(const char* const str)
+// {
+//     const char* s = str;
+//     while (*s)                  //Check the end of the string
+//     {
+//         uart_send_data(*s++);   //Send current char and increment string ptr
+//     }
+// }
 
 void uart_recv_data(uint8_t* const dat)
 {

@@ -99,13 +99,6 @@ typedef enum
         (TMR_MAX16 - ((((sig_dur_us) * SYSCLK / DIV_1US) * 2 + 1) / 2) % TMR_MAX16),    \
         (((((sig_dur_us) * SYSCLK / DIV_1US) * 2 + 1) / 2) / TMR_MAX16)                 \
         )
-
-#define send_IR_signal_us_lite(sig_next, sig_dur_us)                                    \
-    send_IR_signal(                                                                     \
-        (sig_next),                                                                     \
-        (TMR_MAX16 - ((sig_dur_us) * 22) % TMR_MAX16),                                  \
-        (((sig_dur_us) * 22) / TMR_MAX16)                                               \
-        )
  */
 #define send_IR_symbol_us(sym_mark_us, sym_space_us)                                    \
     send_IR_symbol(                                                                     \
@@ -113,14 +106,6 @@ typedef enum
         (((((sym_mark_us) * SYSCLK / DIV_1US) * 2 + 1) / 2) / TMR_MAX16),               \
         (TMR_MAX16 - ((((sym_space_us) * SYSCLK / DIV_1US) * 2 + 1) / 2) % TMR_MAX16),  \
         (((((sym_space_us) * SYSCLK / DIV_1US) * 2 + 1) / 2) / TMR_MAX16)               \
-    )
-
-#define send_IR_symbol_us_lite(sym_mark_us, sym_space_us)                               \
-    send_IR_symbol(                                                                     \
-        (TMR_MAX16 - ((sym_mark_us) * 22) % TMR_MAX16),                                 \
-        (((sym_mark_us) * 22) / TMR_MAX16),                                             \
-        (TMR_MAX16 - ((sym_space_us) * 22) % TMR_MAX16),                                \
-        (((sym_space_us) * 22) / TMR_MAX16)                                             \
     )
 
 #define set_IR_signal_duty(cycle_on, cycle_off) \
@@ -175,11 +160,11 @@ void setTimerMS(const bool en);
 
 INTERRUPT(serial_isr, SI0_VECTOR);
 void uart_init(void);
-void uartDisable(void);
-void uartTxOnly(void);
+// void uartDisable(void);
+// void uartTxOnly(void);
 void uartTxRxEnable(void);
 void uart_send_data(const uint8_t dat);
-void uart_send_string(const char* const str);
+// void uart_send_string(const char* const str);
 void uart_recv_data(uint8_t* const dat);
 // void uart_send_hex_string(const uint8_t data);
 

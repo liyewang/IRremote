@@ -40,4 +40,6 @@
 #define HISE_0_M_US         HISE_U_M_US
 #define HISE_0_S_US         HISE_U_M_US
 
+void HISE_task(void);
+
 #endif /* _HISENSE_H_ */
